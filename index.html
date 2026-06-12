@@ -1,0 +1,534 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="物販収支">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<title>物販収支管理</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+body{
+  font-family:-apple-system,'Hiragino Kaku Gothic ProN','Yu Gothic',sans-serif;
+  background:#F2F2F7;color:#1C1C1E;
+  -webkit-font-smoothing:antialiased;
+  padding-bottom:calc(70px + env(safe-area-inset-bottom));
+}
+
+/* ─── Header ─── */
+.header{
+  background:#1F3864;color:white;
+  padding:16px 20px 12px;
+  padding-top:calc(16px + env(safe-area-inset-top));
+  position:sticky;top:0;z-index:200;
+  box-shadow:0 2px 8px rgba(0,0,0,0.3);
+}
+.header h1{font-size:18px;font-weight:700;letter-spacing:.5px;}
+.header-sub{font-size:12px;opacity:.75;margin-top:3px;}
+
+/* ─── Month Tabs ─── */
+.month-tabs{
+  background:white;
+  border-bottom:1px solid #E5E5EA;
+  overflow-x:auto;scrollbar-width:none;
+  white-space:nowrap;
+  position:sticky;top:60px;z-index:190;
+}
+.month-tabs::-webkit-scrollbar{display:none;}
+.month-tab{
+  display:inline-block;
+  padding:11px 15px;font-size:13px;
+  color:#8E8E93;cursor:pointer;
+  border-bottom:3px solid transparent;
+  transition:color .2s,border-color .2s;
+}
+.month-tab.active{
+  color:#1F3864;font-weight:700;
+  border-bottom-color:#1F3864;
+}
+
+/* ─── Content ─── */
+.view{padding:14px 14px 6px;}
+.view.hidden{display:none;}
+
+/* ─── Cards ─── */
+.card{
+  background:white;border-radius:14px;
+  margin-bottom:14px;overflow:hidden;
+  box-shadow:0 1px 4px rgba(0,0,0,0.1);
+}
+.card-header{
+  padding:12px 16px;color:white;
+  font-weight:700;font-size:14px;
+  letter-spacing:.3px;
+}
+.ch-target{background:linear-gradient(135deg,#ED7D31,#C55A11);}
+.ch-sale  {background:linear-gradient(135deg,#2E75B6,#1F4E79);}
+.ch-var   {background:linear-gradient(135deg,#C00000,#922B21);}
+.ch-fix   {background:linear-gradient(135deg,#375623,#1E3A13);}
+.ch-exp   {background:linear-gradient(135deg,#44546A,#2C3A4A);}
+
+/* ─── Rows ─── */
+.row{
+  display:flex;align-items:center;
+  padding:11px 16px;
+  border-bottom:1px solid #F2F2F7;
+  min-height:52px;
+}
+.row:last-child{border-bottom:none;}
+.row-left{flex:1;min-width:0;}
+.row-label{font-size:14px;color:#1C1C1E;}
+.row-note{font-size:11px;color:#AEAEB2;margin-top:2px;}
+.row-right{flex-shrink:0;margin-left:10px;}
+
+.row-input{
+  width:130px;text-align:right;
+  border:1.5px solid #C7C7CC;border-radius:10px;
+  padding:8px 10px;font-size:15px;
+  color:#0055CC;background:white;
+  -webkit-appearance:none;appearance:none;
+  transition:border-color .2s,box-shadow .2s;
+}
+.row-input:focus{
+  outline:none;border-color:#2E75B6;
+  box-shadow:0 0 0 3px rgba(46,117,182,0.2);
+}
+
+.row-calc{
+  font-size:15px;font-weight:600;
+  color:#1C1C1E;text-align:right;
+  min-width:110px;
+}
+
+/* Row backgrounds */
+.bg-target {background:#FEF2EA;}
+.bg-sale   {background:#EBF3FB;}
+.bg-var    {background:#FFF5F5;}
+.bg-fix    {background:#EBF5E8;}
+.bg-subtotal{background:#EEF2F7;}
+.bg-subtotal .row-calc{font-weight:700;}
+.bg-exp    {background:#44546A;}
+.bg-exp .row-label,.bg-exp .row-calc{color:white;font-weight:700;}
+.bg-rate   {background:#C55A11;}
+.bg-rate .row-label,.bg-rate .row-calc{color:white;font-weight:700;}
+.diff-pos  {color:#1E7E34 !important;}
+.diff-neg  {color:#C00000 !important;}
+
+/* ─── Profit Card ─── */
+.profit-card{
+  background:linear-gradient(135deg,#FFF9E6,#FFF2CC);
+  border-radius:14px;margin-bottom:14px;
+  padding:20px 18px;
+  box-shadow:0 2px 12px rgba(127,96,0,0.2);
+  border:1.5px solid #FFD966;
+}
+.profit-card .p-label{font-size:13px;color:#7F6000;font-weight:600;}
+.profit-card .p-amount{
+  font-size:34px;font-weight:800;
+  color:#7F6000;margin:6px 0;
+  letter-spacing:-.5px;
+}
+.profit-card .p-amount.neg{color:#C00000;}
+.profit-card .p-margin{font-size:14px;color:#A07800;font-weight:500;}
+
+/* ─── Annual Table ─── */
+.annual-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;margin:0 0 14px;}
+.atbl{
+  border-collapse:collapse;font-size:12px;
+  background:white;min-width:900px;width:100%;
+  border-radius:14px;overflow:hidden;
+}
+.atbl th{
+  background:#1F3864;color:white;
+  padding:9px 10px;white-space:nowrap;
+  font-weight:600;text-align:right;
+  position:sticky;top:0;
+}
+.atbl th:first-child{text-align:left;position:sticky;left:0;z-index:2;min-width:130px;}
+.atbl td{
+  padding:8px 10px;white-space:nowrap;
+  border-bottom:1px solid #F2F2F7;
+  text-align:right;
+}
+.atbl td:first-child{
+  text-align:left;font-size:12px;
+  position:sticky;left:0;background:white;z-index:1;
+}
+.atbl .sec-row td{color:white;font-weight:700;padding:7px 10px;}
+.atbl .sub-row td{background:#EEF2F7 !important;font-weight:700;}
+.atbl .sub-row td:first-child{background:#EEF2F7 !important;}
+.atbl .exp-row td{background:#44546A !important;color:white;font-weight:700;}
+.atbl .exp-row td:first-child{background:#44546A !important;color:white;}
+.atbl .profit-row td{background:#FFF2CC !important;color:#7F6000;font-weight:800;}
+.atbl .profit-row td:first-child{background:#FFF2CC !important;color:#7F6000;}
+.atbl .margin-row td{background:#FFDBB5 !important;color:#7F6000;font-weight:700;}
+.atbl .margin-row td:first-child{background:#FFDBB5 !important;color:#7F6000;}
+
+/* ─── Bottom Nav ─── */
+.bottom-nav{
+  position:fixed;bottom:0;left:0;right:0;
+  background:rgba(255,255,255,0.95);
+  backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);
+  border-top:1px solid #E5E5EA;
+  display:flex;z-index:300;
+  padding-bottom:env(safe-area-inset-bottom);
+}
+.nav-btn{
+  flex:1;padding:10px 6px 8px;text-align:center;
+  cursor:pointer;color:#8E8E93;
+  transition:color .2s;
+}
+.nav-btn.active{color:#1F3864;}
+.nav-btn .ni{font-size:22px;line-height:1;}
+.nav-btn .nl{font-size:11px;margin-top:3px;font-weight:500;}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>📦 物販収支管理</h1>
+  <div class="header-sub" id="headerSub">2026年 ｜ Amazon物販事業</div>
+</div>
+
+<div class="month-tabs" id="monthTabs"></div>
+
+<!-- 月次入力ビュー -->
+<div class="view" id="monthlyView">
+  <div id="monthContent"></div>
+</div>
+
+<!-- 年間サマリービュー -->
+<div class="view hidden" id="annualView">
+  <div class="annual-wrap"><table class="atbl" id="annualTbl"></table></div>
+</div>
+
+<div class="bottom-nav">
+  <div class="nav-btn active" id="nb0" onclick="switchView(0)">
+    <div class="ni">📝</div><div class="nl">月次入力</div>
+  </div>
+  <div class="nav-btn" id="nb1" onclick="switchView(1)">
+    <div class="ni">📊</div><div class="nl">年間サマリー</div>
+  </div>
+</div>
+
+<script>
+const YEAR   = 2026;
+const MONTHS = ['1月','2月','3月','4月','5月','6月','7月','8月','9月','10月','11月','12月'];
+
+const FIXED_ITEMS = [
+  { key:'univ',       label:'オンライン大学',   note:'eラーニング月額受講料' },
+  { key:'import_ag',  label:'輸入代行',         note:'輸入代行サービス月額固定費' },
+  { key:'cgdp',       label:'CGDP',             note:'ツール月額利用料' },
+  { key:'canba',      label:'CANBA',            note:'ツール月額利用料' },
+  { key:'excel_sub',  label:'EXCEL',            note:'Microsoft 365 月額費' },
+  { key:'yahoo',      label:'Yahoo',            note:'Yahoo! 月額費' },
+  { key:'amazon_sub', label:'Amazon',           note:'プライム・大口出品者月額費' },
+  { key:'claude_sub', label:'Claude',           note:'Claude AI 月額プラン' },
+];
+const VAR_ITEMS = [
+  { key:'cogs',           label:'仕入れ原価',           note:'商品仕入れ費用合計' },
+  { key:'referral_fee',   label:'販売手数料',           note:'Amazonレポート：販売手数料（カテゴリー成約料）' },
+  { key:'fba_ship_fee',   label:'FBA出荷手数料',        note:'Amazonレポート：FBA出荷手数料（配送代行手数料）' },
+  { key:'fba',            label:'FBA手数料',            note:'FBA月額在庫保管料' },
+  { key:'ads',            label:'広告費',               note:'スポンサープロダクト広告費（Amazonレポート）' },
+  { key:'promo_discount', label:'プロモーション割引',   note:'クーポン・割引費用（Amazonレポート：プロモーション割引）' },
+  { key:'customs',        label:'関税費',               note:'輸入時の関税・通関費用' },
+  { key:'other_v',        label:'その他変動費',         note:'梱包材・交通費など（Amazon以外）' },
+];
+
+let curMonth = new Date().getMonth() + 1;
+let curView  = 0;
+let appData  = (() => {
+  try { const d = localStorage.getItem('bussi2026'); return d ? JSON.parse(d) : {}; }
+  catch(e) { return {}; }
+})();
+
+function save() { localStorage.setItem('bussi2026', JSON.stringify(appData)); }
+function mData(m) { if (!appData[m]) appData[m] = {}; return appData[m]; }
+
+// ── 月次インポートデータ（自動集計済み）──
+(function() {
+  const VER = 'import_v6';
+  if (localStorage.getItem('bussi_import_ver') !== VER) {
+    // 4月データ（CSVレポートより確定）
+    appData[4] = appData[4] || {};
+    Object.assign(appData[4], {
+      amazon_s      : 1517256,  // 商品売上+配送料（注文・返金・調整）
+      other_s       : 5509,     // その他売上（FBA在庫返金・調整）
+      amazon_fee    : 592984,   // 販売手数料+FBA出荷手数料（純額・返金管理手数料含む）
+      ads           : 289442,   // 広告費（スポンサープロダクト・税込PDF）
+      promo_discount: 22644,    // プロモーション割引（純額）
+      other_v       : 0,        // その他変動費
+      fba           : 12706,    // FBA月額在庫保管料（固定費）
+      amazon_sub    : 5390,     // Amazon月額登録料（固定費）
+    });
+    // 5月データ（CSVレポートより確定）
+    appData[5] = appData[5] || {};
+    Object.assign(appData[5], {
+      amazon_s      : 1652716,  // 商品売上+配送料（注文・返金・調整）
+      other_s       : 4161,     // その他売上（FBA在庫返金・調整）
+      amazon_fee    : 597462,   // 販売手数料+FBA出荷手数料（純額・返金管理手数料含む）
+      ads           : 0,        // 広告費（PDFが届き次第更新）
+      promo_discount: 122119,   // プロモーション割引（純額・返品調整済）
+      other_v       : 24200,    // Amazon Vine登録手数料
+      fba           : 33108,    // FBA月額在庫保管料（固定費）
+      amazon_sub    : 5390,     // Amazon月額登録料（固定費）
+    });
+    save();
+    localStorage.setItem('bussi_import_ver', VER);
+  }
+})();
+
+// ── Amazon販売手数料を「販売手数料」「FBA出荷手数料」に分割 ──
+(function() {
+  const VER = 'import_v7';
+  if (localStorage.getItem('bussi_import_ver') !== VER) {
+    // 4月：手数料内訳（取引レポートCSVより確定）
+    appData[4] = appData[4] || {};
+    Object.assign(appData[4], {
+      referral_fee : 185465,  // 販売手数料（カテゴリー成約料）
+      fba_ship_fee : 407519,  // FBA出荷手数料（配送代行手数料）
+    });
+    delete appData[4].amazon_fee;
+    // 5月：手数料内訳（取引レポートCSVより確定、Vine登録手数料24,200円はその他変動費に計上済みのため除外）
+    appData[5] = appData[5] || {};
+    Object.assign(appData[5], {
+      referral_fee : 191903,  // 販売手数料（カテゴリー成約料）
+      fba_ship_fee : 405559,  // FBA出荷手数料（配送代行手数料）
+    });
+    delete appData[5].amazon_fee;
+    // その他の月：旧amazon_feeが残っていれば販売手数料へ移行
+    for (let m = 1; m <= 12; m++) {
+      const d = appData[m];
+      if (!d || m === 4 || m === 5) continue;
+      if (d.amazon_fee !== undefined) {
+        if (d.referral_fee === undefined) d.referral_fee = d.amazon_fee;
+        delete d.amazon_fee;
+      }
+    }
+    save();
+    localStorage.setItem('bussi_import_ver', VER);
+  }
+})();
+function val(m, k) { return Number(mData(m)[k] || 0); }
+
+function calc(m) {
+  const v = k => val(m, k);
+  const ts  = v('amazon_s') + v('other_s');
+  const tv  = VAR_ITEMS.reduce((s, i) => s + v(i.key), 0);
+  const tf  = FIXED_ITEMS.reduce((s, i) => s + v(i.key), 0);
+  const te  = tv + tf;
+  const pr  = ts - te;
+  const tgt = v('target');
+  return {
+    ts, tv, tf, te, pr,
+    margin : ts > 0 ? pr / ts : null,
+    rate   : tgt > 0 && ts > 0 ? ts / tgt : null,
+    diff   : tgt > 0 && ts > 0 ? ts - tgt : null,
+    tgt,
+  };
+}
+
+function yen(n) {
+  if (n === null || n === undefined) return '—';
+  if (n === 0) return '¥0';
+  return (n < 0 ? '-¥' : '¥') + Math.abs(Math.round(n)).toLocaleString('ja-JP');
+}
+function pct(n) { return n === null ? '—' : (n * 100).toFixed(1) + '%'; }
+
+/* ─── Month Tabs ─── */
+function buildTabs() {
+  const el = document.getElementById('monthTabs');
+  el.innerHTML = MONTHS.map((m, i) => `
+    <div class="month-tab${i+1===curMonth?' active':''}" id="tab${i+1}" onclick="selMonth(${i+1})">${m}</div>
+  `).join('');
+  setTimeout(() => {
+    const t = document.getElementById('tab'+curMonth);
+    if (t) t.scrollIntoView({inline:'center',behavior:'smooth'});
+  }, 50);
+}
+
+function selMonth(m) { curMonth = m; buildTabs(); renderMonthly(); }
+
+/* ─── Monthly View ─── */
+function iRow(key, bg, label, note, m) {
+  const v = mData(m)[key];
+  const num = (v !== undefined && Number(v) !== 0) ? Number(v) : 0;
+  const disp = num !== 0 ? num.toLocaleString('ja-JP') : '';
+  return `
+  <div class="row ${bg}">
+    <div class="row-left">
+      <div class="row-label">${label}</div>
+      <div class="row-note">${note}</div>
+    </div>
+    <div class="row-right">
+      <input class="row-input" type="text" inputmode="numeric"
+        id="fi_${key}" value="${disp}" placeholder="0"
+        onfocus="this.value=this.value.replace(/,/g,'')"
+        oninput="updLive('${key}',this.value)"
+        onblur="upd('${key}',this.value)">
+    </div>
+  </div>`;
+}
+
+function cRow(bg, label, value, extra) {
+  return `
+  <div class="row ${bg}">
+    <div class="row-left"><div class="row-label">${label}</div></div>
+    <div class="row-right"><div class="row-calc ${extra||''}">${value}</div></div>
+  </div>`;
+}
+
+function renderMonthly() {
+  const m  = curMonth;
+  const c  = calc(m);
+  const md = mData(m);
+
+  const diffColor = c.diff === null ? '' : (c.diff >= 0 ? 'diff-pos' : 'diff-neg');
+
+  document.getElementById('monthContent').innerHTML = `
+
+    <!-- 売上目標管理 -->
+    <div class="card">
+      <div class="card-header ch-target">📊 売上目標管理</div>
+      ${iRow('target','bg-target','売上目標','達成したい月次売上目標', m)}
+      ${cRow('bg-target','実績売上', yen(c.ts))}
+      <div class="row bg-rate">
+        <div class="row-left"><div class="row-label">達成率</div></div>
+        <div class="row-right"><div class="row-calc">${pct(c.rate)}</div></div>
+      </div>
+      <div class="row bg-target">
+        <div class="row-left"><div class="row-label">差異（実績－目標）</div></div>
+        <div class="row-right"><div class="row-calc ${diffColor}">${c.diff===null?'—':yen(c.diff)}</div></div>
+      </div>
+    </div>
+
+    <!-- 売上 -->
+    <div class="card">
+      <div class="card-header ch-sale">💰 売上</div>
+      ${iRow('amazon_s','bg-sale','Amazon売上','Amazon管理画面から入力', m)}
+      ${iRow('other_s','bg-sale','その他売上','メルカリ・楽天など（任意）', m)}
+      ${cRow('bg-subtotal','売上合計', yen(c.ts))}
+    </div>
+
+    <!-- 変動費 -->
+    <div class="card">
+      <div class="card-header ch-var">📉 変動費</div>
+      ${VAR_ITEMS.map(i => iRow(i.key,'bg-var',i.label,i.note,m)).join('')}
+      ${cRow('bg-subtotal','変動費合計', yen(c.tv))}
+    </div>
+
+    <!-- 固定費 -->
+    <div class="card">
+      <div class="card-header ch-fix">📌 固定費</div>
+      ${FIXED_ITEMS.map(i => iRow(i.key,'bg-fix',i.label,i.note,m)).join('')}
+      ${cRow('bg-subtotal','固定費合計', yen(c.tf))}
+    </div>
+
+    <!-- 経費合計 -->
+    <div class="card">
+      <div class="card-header ch-exp">📋 経費合計</div>
+      ${cRow('bg-subtotal','変動費合計', yen(c.tv))}
+      ${cRow('bg-subtotal','固定費合計', yen(c.tf))}
+      ${cRow('bg-exp','経費合計（変動費＋固定費）', yen(c.te))}
+    </div>
+
+    <!-- 利益 -->
+    <div class="profit-card">
+      <div class="p-label">利益（差額）</div>
+      <div class="p-amount${c.pr<0?' neg':''}">${yen(c.pr)}</div>
+      <div class="p-margin">利益率：${pct(c.margin)}</div>
+    </div>
+  `;
+}
+
+function updLive(key, rawVal) {
+  const raw = String(rawVal).replace(/[^0-9]/g, '');
+  mData(curMonth)[key] = raw === '' ? 0 : parseInt(raw, 10);
+  save();
+}
+
+function upd(key, rawVal) {
+  updLive(key, rawVal);
+  renderMonthly();
+}
+
+/* ─── Annual View ─── */
+function renderAnnual() {
+  const allCalcs = {};
+  for (let m = 1; m <= 12; m++) allCalcs[m] = calc(m);
+
+  function row(cls, label, vals, isYen=true) {
+    const cells = vals.map(v => `<td>${isYen ? yen(v) : (v===null?'—':v)}</td>`).join('');
+    const total = (isYen && typeof vals[0]==='number')
+      ? yen(vals.reduce((s,v)=>s+(v||0),0)) : '—';
+    return `<tr class="${cls}"><td>${label}</td>${cells}<td>${total}</td></tr>`;
+  }
+  function rowPct(cls, label, vals) {
+    const cells = vals.map(v => `<td>${pct(v)}</td>`).join('');
+    return `<tr class="${cls}"><td>${label}</td>${cells}<td>—</td></tr>`;
+  }
+  function secRow(label, color) {
+    return `<tr class="sec-row" style="background:${color}">
+      <td colspan="14" style="color:white;font-weight:700">${label}</td></tr>`;
+  }
+
+  const ms = Array.from({length:12}, (_,i) => i+1);
+
+  let html = `<thead><tr>
+    <th style="text-align:left">項目</th>
+    ${MONTHS.map(m=>`<th>${m}</th>`).join('')}
+    <th>年間合計</th>
+  </tr></thead><tbody>`;
+
+  html += secRow('📊 売上目標管理', '#ED7D31');
+  html += row('', '売上目標',    ms.map(m=>val(m,'target')));
+  html += row('', '実績売上',    ms.map(m=>allCalcs[m].ts));
+  html += rowPct('', '達成率',   ms.map(m=>allCalcs[m].rate));
+  html += row('', '差異（実績－目標）', ms.map(m=>allCalcs[m].diff));
+
+  html += secRow('💰 売上', '#2E75B6');
+  html += row('', 'Amazon売上',  ms.map(m=>val(m,'amazon_s')));
+  html += row('', 'その他売上',  ms.map(m=>val(m,'other_s')));
+  html += row('sub-row', '売上合計', ms.map(m=>allCalcs[m].ts));
+
+  html += secRow('📉 変動費', '#C00000');
+  VAR_ITEMS.forEach(i => {
+    html += row('', i.label, ms.map(m=>val(m,i.key)));
+  });
+  html += row('sub-row', '変動費合計', ms.map(m=>allCalcs[m].tv));
+
+  html += secRow('📌 固定費', '#375623');
+  FIXED_ITEMS.forEach(i => {
+    html += row('', i.label, ms.map(m=>val(m,i.key)));
+  });
+  html += row('sub-row', '固定費合計', ms.map(m=>allCalcs[m].tf));
+
+  html += row('exp-row',    '経費合計',    ms.map(m=>allCalcs[m].te));
+  html += row('profit-row', '利益（差額）', ms.map(m=>allCalcs[m].pr));
+  html += rowPct('margin-row', '利益率',   ms.map(m=>allCalcs[m].margin));
+
+  html += '</tbody>';
+  document.getElementById('annualTbl').innerHTML = html;
+}
+
+/* ─── View Switch ─── */
+function switchView(v) {
+  curView = v;
+  document.getElementById('monthlyView').classList.toggle('hidden', v !== 0);
+  document.getElementById('annualView').classList.toggle('hidden', v !== 1);
+  [0,1].forEach(i => document.getElementById('nb'+i).classList.toggle('active', i===v));
+  if (v===1) renderAnnual();
+}
+
+/* ─── Init ─── */
+buildTabs();
+renderMonthly();
+
+if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(()=>{});
+</script>
+</body>
+</html>

@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <rect width="512" height="512" rx="100" fill="#1F3864"/>
+  <rect x="80" y="200" width="80" height="220" rx="8" fill="#ED7D31"/>
+  <rect x="216" y="140" width="80" height="280" rx="8" fill="#2E75B6"/>
+  <rect x="352" y="100" width="80" height="320" rx="8" fill="#70AD47"/>
+  <text x="256" y="80" text-anchor="middle" font-family="Arial" font-size="52" font-weight="700" fill="white">¥</text>
+</svg>
