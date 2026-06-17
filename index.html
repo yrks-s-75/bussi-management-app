@@ -313,6 +313,19 @@ function mData(m) { if (!appData[m]) appData[m] = {}; return appData[m]; }
     localStorage.setItem('bussi_import_ver', VER);
   }
 })();
+
+// ── 5月広告費を確定値に更新 ──
+(function() {
+  const VER = 'import_v8';
+  if (localStorage.getItem('bussi_import_ver') !== VER) {
+    appData[5] = appData[5] || {};
+    Object.assign(appData[5], {
+      ads: 372011,  // 広告費（税込・Amazonads明細書Juneステートメント/May請求分）
+    });
+    save();
+    localStorage.setItem('bussi_import_ver', VER);
+  }
+})();
 function val(m, k) { return Number(mData(m)[k] || 0); }
 
 function calc(m) {
